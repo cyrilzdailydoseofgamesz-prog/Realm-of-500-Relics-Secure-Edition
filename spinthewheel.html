@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Realm of 500 Relics | Secure</title>
+    <style>
+        :root {
+            --primary: #6366f1; --bg: #0f172a; --surface: #1e293b;
+            --gold: #f59e0b; --doom: #ff4444;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg); color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0; padding: 0; display: flex; flex-direction: column;
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* Responsive Layout */
+        .game-wrapper {
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; max-width: 1200px; margin: 0 auto; padding: 10px;
+            transition: 0.5s;
+        }
+
+        @media (min-width: 1024px) {
+            .game-wrapper { display: grid; grid-template-columns: 280px 1fr 280px; gap: 20px; padding: 20px; }
+        }
+
+        /* Menus */
+        .overlay {
+            position: fixed; inset: 0; background: var(--bg);
+            display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px;
+        }
+
+        .card {
+            background: var(--surface); padding: 30px; border-radius: 20px;
+            width: 100%; max-width: 400px; border: 2px solid var(--primary); text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .input-field {
+            width: 100%; padding: 12px; margin: 10px 0; background: #0f172a;
+            border: 1px solid #334155; color: white; border-radius: 8px; font-size: 16px;
+        }
+
+        .btn {
+            width: 100%; padding: 14px; background: var(--primary); border: none;
+            color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 5px 0;
+        }
+
+        /* Top Nav */
+        .top-nav {
+            width: 100%; background: var(--surface); padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--primary); flex-wrap: wrap;
+        }
+
+        .stat-group { display: flex; gap: 15px; font-size: 0.9rem; }
+
+        /* Wheel Area */
+        .wheel-container { padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .wheel-box { 
+            position: relative; 
+            width: 320px; height: 320px; 
+            max-width: 85vw; max-height: 85vw;
+        }
+        .pointer {
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 15px solid transparent;
+            border-right: 15px solid transparent; border-top: 30px solid var(--doom); z-index: 10;
+        }
+        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #334155; transition: 4s cubic-bezier(0.15, 0, 0.15, 1); }
+
+        .spin-btn {
+            background: linear-gradient(135deg, #6366f1, #a855f7); border: none;
+            padding: 16px 40px; border-radius: 50px; color: white; font-size: 1.2rem;
+            font-weight: bold; cursor: pointer; margin-top: 20px; width: 100%; max-width: 300px;
+        }
+
+        .sidebar { background: var(--surface); border-radius: 12px; padding: 15px; width: 100%; height: 300px; overflow-y: auto; margin: 10px 0; }
+        
+        .hidden { display: none !important; }
+        .settings-btn { background: #334155; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen" class="overlay">
+        <div class="card">
+            <h2 id="auth-title">CREATE ACCOUNT</h2>
+            <p style="font-size: 0.7rem; color: #94a3b8;">⚠️ No real names or addresses.</p>
+            <input type="text" id="user-input" class="input-field" placeholder="Username">
+            <input type="password" id="pass-input" class="input-field" placeholder="Password">
+            <button class="btn" onclick="handleAuth('signup')">Sign Up</button>
+            <button class="btn" style="background:none; border:1px solid var(--primary)" onclick="toggleAuth()">Already have an account? Login</button>
+            <p id="auth-error" style="color: var(--doom); font-size: 0.8rem; margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <div id="settings-screen" class="overlay hidden">
+        <div class="card">
+            <h2>SETTINGS</h2>
+            <button class="btn" style="background: #4b5563" onclick="closeSettings()">Back to Game</button>
+            <button class="btn" style="background: var(--doom)" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="top-nav">
+        <div class="stat-group">
+            <span>👤 <span id="display-user">---</span></span>
+            <span class="settings-btn" onclick="openSettings()">⚙️ Settings</span>
+        </div>
+        <div class="stat-group">
+            <span>💰 <span id="display-gold">500</span></span>
+            <span>🏆 <span id="display-prog">0</span></span>
+        </div>
+    </div>
+
+    <div class="game-wrapper" id="game-ui">
+        <div class="sidebar">
+            <h3>LOG</h3>
+            <div id="game-log"></div>
+        </div>
+
+        <div class="wheel-container">
+            <div class="wheel-box">
+                <div class="pointer"></div>
+                <canvas id="wheel"></canvas>
+            </div>
+            <button class="spin-btn" id="spinBtn" onclick="spin()">SPIN (50 GOLD)</button>
+            <p id="msg" style="text-align: center; color: #94a3b8;"></p>
+        </div>
+
+        <div class="sidebar">
+            <h3>ITEMS</h3>
+            <div id="inv-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let gameState = { gold: 500, prog: 0, items: [], luck: 1.0 };
+        let isSignup = true;
+        let rotation = 0;
+
+        const wheelSlices = [
+            { label: "RELYC", color: "#818cf8", type: 'win' },
+            { label: "100 GOLD", color: "#f59e0b", type: 'gold', amt: 100 },
+            { label: "DOOM", color: "#000", type: 'doom' },
+            { label: "50 GOLD", color: "#d97706", type: 'gold', amt: 50 },
+            { label: "DOOM", color: "#000", type: 'doom' },
+            { label: "RELYC", color: "#d946ef", type: 'win' }
+        ];
+
+        // --- AUTH & ACCOUNTS ---
+        function toggleAuth() {
+            isSignup = !isSignup;
+            document.getElementById('auth-title').innerText = isSignup ? "CREATE ACCOUNT" : "LOGIN";
+            document.querySelector('#auth-screen .btn').innerText = isSignup ? "Sign Up" : "Login";
+        }
+
+        function handleAuth(mode) {
+            const u = document.getElementById('user-input').value.trim().toLowerCase();
+            const p = document.getElementById('pass-input').value.trim();
+            const err = document.getElementById('auth-error');
+            
+            if(!u || !p) return err.innerText = "Fill all fields";
+            
+            let accounts = JSON.parse(localStorage.getItem('game_accounts') || '{}');
+
+            if(isSignup) {
+                if(accounts[u]) return err.innerText = "Username already taken!";
+                accounts[u] = { password: p, data: { gold: 500, prog: 0, items: [], luck: 1.0 } };
+                localStorage.setItem('game_accounts', JSON.stringify(accounts));
+                alert("Account created!");
+            }
+
+            if(accounts[u] && accounts[u].password === p) {
+                currentUser = u;
+                gameState = accounts[u].data;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('display-user').innerText = u;
+                updateUI();
+                initWheel();
+            } else {
+                err.innerText = "Invalid credentials";
+            }
+        }
+
+        // --- ANTI-CHEAT & PROGRESS ---
+        function saveProgress() {
+            if(!currentUser) return;
+            let accounts = JSON.parse(localStorage.getItem('game_accounts'));
+            // Anti-cheat: basic check if points exceed realistic limits
+            if(gameState.gold > 1000000) gameState.gold = 500; 
+            accounts[currentUser].data = gameState;
+            localStorage.setItem('game_accounts', JSON.stringify(accounts));
+        }
+
+        // --- GAME LOGIC ---
+        function initWheel() {
+            const canvas = document.getElementById('wheel');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 320; canvas.height = 320;
+            const arc = (Math.PI * 2) / wheelSlices.length;
+            wheelSlices.forEach((s, i) => {
+                ctx.beginPath(); ctx.fillStyle = s.color; ctx.moveTo(160, 160);
+                ctx.arc(160, 160, 160, i*arc, (i+1)*arc); ctx.fill();
+                ctx.save(); ctx.translate(160, 160); ctx.rotate(i*arc + arc/2);
+                ctx.fillStyle = "white"; ctx.font = "bold 12px sans-serif";
+                ctx.fillText(s.label, 70, 5); ctx.restore();
+            });
+        }
+
+        function spin() {
+            if (gameState.gold < 50) return alert("No gold!");
+            gameState.gold -= 50;
+            const btn = document.getElementById('spinBtn');
+            btn.disabled = true;
+
+            const winIdx = Math.floor(Math.random() * wheelSlices.length);
+            rotation += 1800 + (360 - (winIdx * 60) - 30);
+            document.getElementById('wheel').style.transform = `rotate(${rotation}deg)`;
+
+            setTimeout(() => {
+                btn.disabled = false;
+                const win = wheelSlices[winIdx];
+                if(win.type === 'doom') {
+                    gameState.gold = Math.max(0, gameState.gold - 5);
+                    gameState.prog = Math.max(0, gameState.prog - 1);
+                    document.getElementById('msg').innerText = "DOOM! -5 Gold, -1 Progress";
+                } else if(win.type === 'gold') {
+                    gameState.gold += win.amt;
+                    document.getElementById('msg').innerText = `+${win.amt} Gold!`;
+                } else {
+                    gameState.prog++;
+                    const item = "Relic #" + Math.floor(Math.random()*500);
+                    gameState.items.unshift(item);
+                    document.getElementById('msg').innerText = "Found: " + item;
+                }
+                updateUI();
+                saveProgress();
+            }, 4000);
+        }
+
+        function updateUI() {
+            document.getElementById('display-gold').innerText = gameState.gold;
+            document.getElementById('display-prog').innerText = gameState.prog;
+            const inv = document.getElementById('inv-list');
+            inv.innerHTML = gameState.items.map(i => `<div style="padding:5px; border-bottom:1px solid #334155">${i}</div>`).join('');
+        }
+
+        function openSettings() { document.getElementById('settings-screen').classList.remove('hidden'); }
+        function closeSettings() { document.getElementById('settings-screen').classList.add('hidden'); }
+        function logout() { location.reload(); }
+
+        // Persistent Login Check
+        window.onload = () => {
+            // Check if some browser hacking is happening
+            if(window.outerHeight - window.innerHeight > 200) console.log("Anti-cheat notice: Console open.");
+        };
+    </script>
+</body>
+</html>
